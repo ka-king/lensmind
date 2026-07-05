@@ -27,6 +27,25 @@ __author__ = "万"
 
 logger = logging.getLogger(__name__)
 
+# 注入风险字符——prompt injection 的典型分隔符
+_INJECTION_MARKERS = ["\\n---", "\\n###", "Ignore previous", "SYSTEM:", "<<SYS>>"]
+
+
+def _sanitize(value: str, max_len: int = 500) -> str:
+    """基础输入清理：截断长度 + 去除注入标记。
+
+    不做全面过滤——输入最终进入 LLM 上下文，
+    由 LLM 层面的 prompt engineering 防御。
+    """
+    if not value:
+        return ""
+    result = value[:max_len]
+    for marker in _INJECTION_MARKERS:
+        if marker.lower() in result.lower():
+            # 移除注入标记
+            result = result.lower().replace(marker.lower(), "[blocked]")
+    return result
+
 
 class LensMindClient:
     """LensMind API 客户端。
@@ -89,12 +108,18 @@ class LensMindClient:
         from lensmind.skills import get_catalog
         from lensmind.workflow import WorkflowEngine
 
-        context_parts = [f"产品名称: {product_name}"]
+        # 输入清理: 截断 + 移除危险字符
+        safe_name = _sanitize(product_name, max_len=500)
+        safe_req = _sanitize(requirements, max_len=2000) if requirements else ""
+        safe_style = _sanitize(style, max_len=50)
+
+        context_parts = [f"产品名称: {safe_name}"]
         if product_images:
-            context_parts.append(f"产品图片: {', '.join(product_images)}")
-        if requirements:
-            context_parts.append(f"额外要求: {requirements}")
-        context_parts.append(f"风格: {style}, 时长: {duration_sec}秒")
+            safe_paths = [_sanitize(p, max_len=500) for p in product_images[:10]]
+            context_parts.append(f"产品图片: {', '.join(safe_paths)}")
+        if safe_req:
+            context_parts.append(f"额外要求: {safe_req}")
+        context_parts.append(f"风格: {safe_style}, 时长: {duration_sec}秒")
         initial_context = {"product_context": "\n".join(context_parts)}
 
         # 从 SkillCatalog 加载 pipeline 定义
