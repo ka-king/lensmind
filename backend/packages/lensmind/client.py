@@ -10,6 +10,10 @@
     # 方式 2：纯 SDK（无配置文件）
     client = LensMindClient(model=my_model, features=RuntimeFeatures(...))
     result = client.generate_video("法式碎花连衣裙", [...])
+
+    # 方式 3：DAG pipeline（6 节点自动编排）
+    client = LensMindClient()
+    outputs = client.run_pipeline("法式碎花连衣裙")
 """
 
 from __future__ import annotations
@@ -113,6 +117,31 @@ class LensMindClient:
         })
 
         return result
+
+    def run_pipeline(self, product_name: str, product_images: list[str] | None = None) -> dict[str, Any]:
+        """通过 DAG 工作流引擎执行完整的视频生成 pipeline。
+
+        6 节点 DAG:
+          product_analysis → script → model+scene(并行) → clips → final_video
+
+        参数:
+            product_name: 产品名称。
+            product_images: 产品图片路径。
+
+        返回:
+            {node_name: output} 的字典。
+        """
+        from lensmind.workflow import WorkflowEngine, build_video_pipeline
+
+        plan = build_video_pipeline()
+        engine = WorkflowEngine(self._model)
+
+        context_parts = [f"产品名称: {product_name}"]
+        if product_images:
+            context_parts.append(f"产品图片: {', '.join(product_images)}")
+        initial_context = {"product_context": "\n".join(context_parts)}
+
+        return engine.run(plan, initial_context)
 
     def chat(self, message: str) -> dict[str, Any]:
         """向 Agent 发送消息，获取回复。
