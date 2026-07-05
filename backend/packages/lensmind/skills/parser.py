@@ -45,14 +45,22 @@ def parse_skill(path: str | Path) -> SkillDef:
     if not path.exists():
         raise FileNotFoundError(f"SKILL.md 不存在: {path}")
 
-    content = path.read_text(encoding="utf-8")
+    try:
+        content = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        raise ValueError(f"{path}: 不是有效的 UTF-8 文件: {e}") from e
 
     # 提取 frontmatter
     fm_match = _FRONTMATTER_RE.match(content)
     if fm_match is None:
         raise ValueError(f"{path}: 缺少 YAML frontmatter（文件必须以 --- 开头）")
 
-    frontmatter = yaml.safe_load(fm_match.group(1)) or {}
+    try:
+        frontmatter = yaml.safe_load(fm_match.group(1))
+    except yaml.YAMLError as e:
+        raise ValueError(f"{path}: YAML frontmatter 解析失败: {e}") from e
+
+    frontmatter = frontmatter or {}
     if "name" not in frontmatter:
         raise ValueError(f"{path}: frontmatter 中缺少必填的 'name' 字段")
 
@@ -74,8 +82,10 @@ def parse_skill(path: str | Path) -> SkillDef:
     )
 
 
-def _parse_pipeline(pipeline_data: dict) -> list[PipelineNodeDef]:
+def _parse_pipeline(pipeline_data: dict | list | None) -> list[PipelineNodeDef]:
     """解析 pipeline.nodes 为 PipelineNodeDef 列表。"""
+    if not isinstance(pipeline_data, dict):
+        return []
     nodes_raw = pipeline_data.get("nodes", [])
     result = []
     for nd in nodes_raw:

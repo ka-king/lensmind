@@ -53,11 +53,13 @@ class LocalSandbox(Sandbox):
 
         使用 subprocess.run 的子进程隔离，不修改宿主机状态。
         """
-        # 使用 shlex.split 避免 shell=True 的命令注入风险
+        if not command:
+            return CommandResult(returncode=-1, stderr="命令不能为空")
+
         try:
-            cmd_parts = shlex.split(command)
+            cmd_parts = shlex.split(str(command))
         except ValueError:
-            cmd_parts = [command]
+            cmd_parts = [str(command)]
 
         try:
             proc = subprocess.run(

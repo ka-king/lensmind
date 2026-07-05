@@ -141,10 +141,20 @@ class MCPClient:
 
     def disconnect(self) -> None:
         """关闭 MCP 连接。"""
+        errs = []
         if hasattr(self, '_session_ctx'):
-            self._session_ctx.__exit__(None, None, None)
+            try:
+                self._session_ctx.__exit__(None, None, None)
+            except Exception as e:
+                errs.append(str(e))
         if hasattr(self, '_stdio_ctx'):
-            self._stdio_ctx.__exit__(None, None, None)
+            try:
+                self._stdio_ctx.__exit__(None, None, None)
+            except Exception as e:
+                errs.append(str(e))
         self._connected = False
         self._tools.clear()
-        logger.info("MCP '%s' 已断开", self.name)
+        if errs:
+            logger.warning("MCP '%s' 断开时有错误: %s", self.name, "; ".join(errs))
+        else:
+            logger.info("MCP '%s' 已断开", self.name)

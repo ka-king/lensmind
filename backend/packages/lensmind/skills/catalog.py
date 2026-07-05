@@ -51,7 +51,12 @@ class SkillCatalog:
         if not root.exists():
             return 0
         count = 0
-        for md_path in root.rglob("SKILL.md"):
+        try:
+            paths = list(root.rglob("SKILL.md"))
+        except (OSError, PermissionError) as e:
+            logger.warning("无法扫描 %s: %s", root, e)
+            return 0
+        for md_path in paths:
             try:
                 skill = parse_skill(md_path)
                 skill.kind = kind

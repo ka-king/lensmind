@@ -25,8 +25,15 @@ def _resolve_class(path: str) -> type:
 
     示例: "langchain_openai:ChatOpenAI" → ChatOpenAI 类
     """
-    module_path, class_name = path.split(":")
-    module = importlib.import_module(module_path)
+    if ":" not in path:
+        raise ValueError(f"无效的类路径格式 '{path}'，期望 'module.path:ClassName'")
+    module_path, class_name = path.split(":", 1)
+    try:
+        module = importlib.import_module(module_path)
+    except ImportError as e:
+        raise ImportError(f"无法导入模块 '{module_path}'（用于 '{path}'）: {e}") from e
+    if not hasattr(module, class_name):
+        raise AttributeError(f"模块 '{module_path}' 中未找到类 '{class_name}'")
     return getattr(module, class_name)
 
 

@@ -65,5 +65,13 @@ def task_tool(
         subagent_type, config.timeout_seconds, config.max_turns,
     )
 
-    model = get_current_model()
-    return execute_subagent(subagent_type, prompt, context, model)
+    try:
+        model = get_current_model()
+    except RuntimeError as e:
+        return f"无法获取模型: {e}"
+
+    try:
+        return execute_subagent(subagent_type, prompt, context, model)
+    except Exception as e:
+        logger.exception("task_tool 执行失败: %s", subagent_type)
+        return f"子 Agent '{subagent_type}' 执行失败: {e}"

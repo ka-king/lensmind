@@ -64,7 +64,11 @@ def save_checkpoint(
         "started_at": result.started_at,
         "finished_at": result.finished_at,
     }
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    try:
+        path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    except OSError as e:
+        logger.error("检查点保存失败 %s: %s", path, e)
+        raise
     logger.info("检查点已保存: %s (status=%s)", path, result.status)
     return path
 
@@ -83,7 +87,12 @@ def load_checkpoint(
     if not path.exists():
         return None
 
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        logger.error("检查点加载失败 %s: %s", path, e)
+        return None
+
     logger.info("检查点已加载: %s (status=%s)", path, data.get("status"))
     return data
 

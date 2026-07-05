@@ -32,7 +32,13 @@ class MCPSessionPool:
             logger.info("未找到 %s，跳过 MCP 加载", config_path)
             return 0
 
-        data = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            raw = path.read_text(encoding="utf-8")
+            data = json.loads(raw)
+        except (json.JSONDecodeError, OSError) as e:
+            logger.error("无法解析 %s: %s", config_path, e)
+            return 0
+
         servers = data.get("mcpServers", {})
         count = 0
 
@@ -47,7 +53,10 @@ class MCPSessionPool:
                 tool_call_timeout=cfg.get("tool_call_timeout", 60),
             )
             client = MCPClient(config)
-            client.connect()
+            try:
+                client.connect()
+            except Exception as e:
+                logger.warning("MCP '%s' 连接失败: %s", name, e)
             if client.connected:
                 self._clients[name] = client
                 count += 1
