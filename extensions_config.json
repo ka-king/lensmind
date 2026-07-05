@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "image-gen": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["image-gen-mcp-server"],
+      "env": {},
+      "tool_call_timeout": 120
+    },
+    "video-gen": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["video-gen-mcp-server"],
+      "env": {},
+      "tool_call_timeout": 300
+    },
+    "tts": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["tts-mcp-server"],
+      "env": {},
+      "tool_call_timeout": 60
+    }
+  },
+  "skills": {
+    "public_path": "skills/public/",
+    "system_path": ".agent/skills/"
+  }
+}

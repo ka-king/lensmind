@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Subagent Status Contract",
+  "description": "Lead Agent 和 Subagent 之间的标准通信格式",
+  "type": "object",
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "委托任务唯一 ID"
+    },
+    "subagent_type": {
+      "type": "string",
+      "description": "子 Agent 类型名"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["accepted", "running", "completed", "failed", "partial"],
+      "description": "执行状态"
+    },
+    "result": {
+      "description": "执行结果（任意 JSON）"
+    },
+    "error": {
+      "type": "string",
+      "description": "错误信息（status=failed 时）"
+    },
+    "token_usage": {
+      "type": "object",
+      "properties": {
+        "input": {"type": "integer"},
+        "output": {"type": "integer"}
+      }
+    },
+    "duration_ms": {
+      "type": "integer",
+      "description": "执行耗时（毫秒）"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "产出的文件路径列表"
+    }
+  },
+  "required": ["task_id", "subagent_type", "status"]
+}
