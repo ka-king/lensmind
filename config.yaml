@@ -5,47 +5,129 @@ config_version: 1
 models:
   - name: claude-sonnet-4-6
     display_name: Claude Sonnet 4.6
+    provider: anthropic
     use: langchain_anthropic:ChatAnthropic
     model: claude-sonnet-4-6
     api_key: $ANTHROPIC_API_KEY
     max_tokens: 4096
     temperature: 0.7
+    top_p: 1.0
+    context_window: 200000
+    vision: true
+    tools: true
+    function_calling: true
+    json_mode: true
+    timeout: 60
+    max_retries: 3
+    streaming: false
+    input_cost_per_1k: 0.003
+    output_cost_per_1k: 0.015
+    rpm: 50
+    tpm: 200000
+    fallback_models: []
 
   - name: gpt-4o
     display_name: GPT-4o
+    provider: openai
     use: langchain_openai:ChatOpenAI
     model: gpt-4o
     api_key: $OPENAI_API_KEY
+    max_tokens: 4096
+    temperature: 0.7
+    top_p: 1.0
+    context_window: 128000
+    vision: true
+    tools: true
+    function_calling: true
+    json_mode: true
+    timeout: 60
+    max_retries: 3
+    streaming: false
+    input_cost_per_1k: 0.0025
+    output_cost_per_1k: 0.01
+    rpm: 500
+    tpm: 300000
+    fallback_models: [claude-sonnet-4-6]
 
 default_model: claude-sonnet-4-6
 
 # === 子 Agent ===
 subagents:
-  timeout_seconds: 1800
-  agents:
+  timeout_seconds: 1800       # 全局默认超时
+  global_max_turns: 20        # 全局默认最大轮次
+  global_max_retries: 3       # 全局默认最大重试
+  global_model: ""            # 全局默认模型（空 = 沿用主 Agent 模型）
+
+  # 定义层——每个子 Agent 的身份和能力（来自子 Agent 模块声明）
+  specs:
     product_analyzer:
-      timeout_seconds: 60
-      max_turns: 10
+      role: 产品分析师
+      description: 分析产品卖点、目标人群和视觉风格
+      input_schema: {"type": "object", "properties": {"product_name": {"type": "string"}, "product_images": {"type": "array"}}}
+      output_schema: {"type": "object", "properties": {"category": {"type": "string"}, "selling_points": {"type": "array"}}}
+      tools: []
+      default_timeout_seconds: 60
+      default_max_turns: 10
+      default_max_retries: 3
+
     script_writer:
-      timeout_seconds: 120
-      max_turns: 20
+      role: 编剧
+      description: 根据产品分析创作分镜脚本和口播文案
+      tools: []
+      default_timeout_seconds: 120
+      default_max_turns: 20
+      default_max_retries: 2
+
     model_image_artist:
-      timeout_seconds: 300
-      max_turns: 5
+      role: 模特图生成师
+      description: 为每个分镜生成模特展示图
+      tools: [bash_tool]
+      default_timeout_seconds: 300
+      default_max_turns: 5
+      default_max_retries: 1
+
     scene_designer:
-      timeout_seconds: 300
-      max_turns: 5
+      role: 场景设计师
+      description: 为每个分镜生成背景场景图
+      tools: [bash_tool]
+      default_timeout_seconds: 300
+      default_max_turns: 5
+      default_max_retries: 1
+
     storyboard_animator:
-      timeout_seconds: 600
-      max_turns: 6
+      role: 分镜动画师
+      description: 将模特图和场景图合成为动态视频片段
+      tools: [bash_tool]
+      default_timeout_seconds: 600
+      default_max_turns: 6
+      default_max_retries: 1
+
     video_editor:
-      timeout_seconds: 300
-      max_turns: 8
+      role: 剪辑师
+      description: 拼接视频片段并合成配音和字幕
+      tools: [bash_tool]
+      default_timeout_seconds: 300
+      default_max_turns: 8
+      default_max_retries: 2
+
+  # 覆盖层——运行时参数覆盖（生产环境可在此调整，不影响 spec 定义）
+  agents:
+    script_writer:
+      model: claude-opus-4-7          # 编剧用更强的模型
+      temperature: 0.9                 # 更高创意性
 
 # === 沙箱 ===
 sandbox:
   use: lensmind.sandbox.local:LocalSandboxProvider
-  allow_host_bash: false
+  security_level: 1              # 0=信任(开发), 1=受限(默认), 2=隔离(Docker), 3=零信任
+
+  capabilities:                  # 沙箱能力声明
+    bash: true
+    python: false
+    file_system: true
+    network: false
+    subprocess: true
+
   bash_output_max_chars: 20000
   bash_timeout_seconds: 600
 
@@ -53,12 +135,16 @@ sandbox:
 skills:
   public_path: skills/public/
   system_path: .agent/skills/
+  enable_hot_reload: false       # 生产关闭，开发可开
+  cache_enabled: true
 
 # === 记忆 ===
 memory:
   enabled: true
   max_facts: 50
   max_injection_tokens: 2000
+  auto_extract: true             # 自动从对话中提取记忆
+  auto_update: true              # 自动更新已有记忆
 
 # === 摘要 ===
 summarization:
@@ -72,11 +158,26 @@ summarization:
 
 # === 功能开关 ===
 features:
-  sandbox: true
-  memory: true
-  summarization: false    # MVP 阶段关闭
-  subagent: true
-  vision: true
-  auto_title: false       # MVP 阶段关闭
-  loop_detection: true
-  guardrail: false        # MVP 阶段关闭
+  execution:                  # 执行层
+    sandbox: true
+    subagent: true
+  memory:                     # 记忆层
+    memory: true
+    summarization: false
+  safety:                     # 安全层
+    loop_detection: true
+    guardrail: false
+  ux:                         # UX层
+    vision: true
+    auto_title: false
+
+# 也支持扁平写法（向后兼容）:
+# features:
+#   sandbox: true
+#   subagent: true
+#   memory: true
+#   summarization: false
+#   loop_detection: true
+#   guardrail: false
+#   vision: true
+#   auto_title: false

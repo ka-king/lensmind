@@ -49,12 +49,12 @@ class RuntimeFeatures:
     def from_config(cls, config: FeaturesConfig) -> RuntimeFeatures:
         """从 YAML 配置构建 RuntimeFeatures。"""
         return cls(
-            sandbox=config.sandbox,
-            memory=config.memory,
-            summarization=config.summarization,
-            subagent=config.subagent,
-            vision=config.vision,
-            auto_title=config.auto_title,
-            loop_detection=config.loop_detection,
-            guardrail=config.guardrail,
+            sandbox=config.execution.sandbox,
+            subagent=config.execution.subagent,
+            memory=config.memory.memory,
+            summarization=config.memory.summarization,
+            guardrail=config.safety.guardrail,
+            loop_detection=config.safety.loop_detection,
+            vision=config.ux.vision,
+            auto_title=config.ux.auto_title,
         )
