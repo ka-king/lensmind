@@ -5,8 +5,8 @@
 """
 
 from lensmind.workflow.plan import WorkflowNode, WorkflowPlan
+from lensmind.workflow.result import NodeResult, WorkflowResult
 
-# engine 依赖 langchain_core，延迟导入以避免硬依赖
 try:
     from lensmind.workflow.engine import WorkflowEngine
 except ImportError:
@@ -19,4 +19,7 @@ except ImportError:
 
 __author__ = "万"
 
-__all__ = ["WorkflowEngine", "WorkflowNode", "WorkflowPlan", "build_video_pipeline"]
+__all__ = [
+    "WorkflowEngine", "WorkflowNode", "WorkflowPlan",
+    "WorkflowResult", "NodeResult", "build_video_pipeline",
+]

@@ -109,22 +109,43 @@ class LensMindClient:
 
         engine = WorkflowEngine(self._model)
 
+        import time
+        import uuid
+        from lensmind.persistence import Task, TaskRepository
+        from lensmind.runtime import save_checkpoint
+
+        task_id = uuid.uuid4().hex[:12]
+        task = Task(task_id=task_id, product_name=product_name, status="running")
+
         try:
-            outputs = engine.run(plan, initial_context)
-            status = "completed"
-            error = None
+            wf_result = engine.run(plan, initial_context)
+            save_checkpoint(task_id, wf_result)
+
+            task.status = wf_result.status
+            task.node_outputs = {n: nr.output for n, nr in wf_result.nodes.items()}
+            task.total_ms = int(wf_result.total_duration_ms)
+            task.finished_at = time.time()
+            TaskRepository().save(task)
+
+            return {
+                "task_id": task_id,
+                "status": wf_result.status,
+                "outputs": task.node_outputs,
+                "final_node": wf_result.get_output("final_video"),
+                "completed": wf_result.completed_count,
+                "failed": wf_result.failed_count,
+                "total_ms": task.total_ms,
+            }
         except Exception as e:
             logger.exception("DAG 执行失败")
-            outputs = {}
-            status = "failed"
-            error = str(e)
-
-        return {
-            "status": status,
-            "outputs": outputs,
-            "final_node": outputs.get("final_video", ""),
-            "error_message": error,
-        }
+            return {
+                "status": "failed",
+                "outputs": {},
+                "final_node": "",
+                "completed": 0,
+                "failed": 1,
+                "error_message": str(e),
+            }
 
     # ---- 对话（Lead Agent）----
 

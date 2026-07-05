@@ -72,10 +72,52 @@ def test_video_pipeline_build():
     assert len(plan.nodes) == 6
     assert plan.validate() == []
 
-    # 验证并行组
     model_node = plan.get_node("model_images")
     scene_node = plan.get_node("scene_images")
-    assert model_node is not None
-    assert scene_node is not None
     assert model_node.parallel_group == "image_generation"
     assert scene_node.parallel_group == "image_generation"
+
+
+def test_workflow_result_tracking():
+    """验证 WorkflowResult 状态追踪。"""
+    from lensmind.workflow.result import NodeResult, WorkflowResult
+
+    wr = WorkflowResult.from_plan("test", ["a", "b", "c"])
+    assert wr.status == "running"
+    assert len(wr.nodes) == 3
+
+    wr.nodes["a"].status = "completed"
+    wr.nodes["a"].output = "done"
+    wr.nodes["b"].status = "failed"
+    wr.nodes["b"].error = "test error"
+    wr.nodes["c"].status = "completed"
+    wr.finalize()
+
+    assert wr.status == "partial"
+    assert wr.completed_count == 2
+    assert wr.failed_count == 1
+    assert wr.get_output("a") == "done"
+    assert wr.get_output("b") == ""
+
+
+def test_node_result_duration():
+    """验证 NodeResult 计时。"""
+    from lensmind.workflow.result import NodeResult
+
+    nr = NodeResult(node_name="test")
+    nr.started_at = 1000.000
+    nr.finished_at = 1001.500
+    assert nr.duration_ms == 1500.0
+    assert nr.ok is False  # status 仍为 pending, 未 completed
+
+
+def test_workflow_result_all_ok():
+    """验证全部成功时 status=completed。"""
+    from lensmind.workflow.result import WorkflowResult
+
+    wr = WorkflowResult.from_plan("test", ["a", "b"])
+    wr.nodes["a"].status = "completed"
+    wr.nodes["b"].status = "completed"
+    wr.finalize()
+    assert wr.status == "completed"
+    assert wr.completed_count == 2
