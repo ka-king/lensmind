@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import logging
 
+from typing import Any
+
 from langchain.agents.middleware import AgentMiddleware
-from langchain.agents.middleware.types import AgentState, AgentRuntime
+from langchain.agents.middleware.types import AgentState
 
 from lensmind.sandbox._context import clear_current_sandbox, set_current_sandbox
 from lensmind.sandbox.local.local_sandbox import LocalSandboxProvider
@@ -37,13 +39,13 @@ class SandboxMiddleware(AgentMiddleware):
         super().__init__()
         self._provider = provider or _default_provider
 
-    def before_agent(self, state: AgentState, runtime: AgentRuntime) -> dict | None:
+    def before_agent(self, state: AgentState, runtime: Any) -> dict | None:
         sandbox = self._provider.create_sandbox()
         set_current_sandbox(sandbox)
         logger.debug("沙箱 %s 已创建", sandbox.sandbox_id)
         return None
 
-    def after_agent(self, state: AgentState, runtime: AgentRuntime) -> dict | None:
+    def after_agent(self, state: AgentState, runtime: Any) -> dict | None:
         sandbox = get_current_sandbox()
         if sandbox:
             clear_current_sandbox()

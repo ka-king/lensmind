@@ -710,4 +710,12 @@ def load_app_config(config_path: str | Path | None = None) -> AppConfig:
     """
     if config_path is None:
         config_path = os.environ.get("LENSMIND_CONFIG", "config.yaml")
+
+    # 自动加载 .env 文件（如果存在）
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+
     return AppConfig.from_yaml(Path(config_path))

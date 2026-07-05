@@ -75,8 +75,8 @@ def make_lead_agent(
     agent_tools: list[BaseTool] = list(tools or [])
     _inject_feature_tools(features, agent_tools)
 
-    from lensmind.tools.builtins.clarification_tool import ask_clarification_tool
-    agent_tools.append(ask_clarification_tool)
+    from lensmind.tools.builtins.clarification_tool import ask_clarification
+    agent_tools.append(ask_clarification)
 
     logger.info(
         "创建 Lead Agent — model=%s, middleware=%d, tools=%d",

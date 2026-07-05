@@ -8,10 +8,12 @@
 
 | 层 | 已有 | 测试数 | 结果 |
 |---|------|--------|------|
-| L1 单元测试 | ✅ 6个测试文件 | 45 | ✅ 45/45 passed (8.93s) |
-| L2 集成测试 | ❌ 未开始 | 0 | — |
-| L3 场景测试 | ❌ 未开始 | 0 | — |
+| L1 单元测试 | ✅ 5个文件 | 45 | ✅ 45/45 passed |
+| L2 集成测试 | ✅ 3个文件 | 9 | ✅ 9/9 passed |
+| L3 场景测试 | ✅ 真实API | 3 | ✅ 3/3 passed (DeepSeek V4 Pro) |
+| L3 场景测试 | ⏸️ 需API key | 4 | ⏸️ 4 skipped |
 | L4 生产监控 | ❌ 未开始 | 0 | — |
+| **总计** | | **57 passed / 4 skipped** | **(~9s L1+L2, +21s L3)** |
 
 ### L1 覆盖详情
 
@@ -22,6 +24,28 @@
 | `test_workflow.py` | 8 | WorkflowNode, WorkflowPlan, WorkflowResult, DAG 验证, pipeline 构建 |
 | `test_sandbox_local.py` | 5 | LocalSandbox 命令执行、文件读写、超时处理、provider |
 | `test_tools_unit.py` | 7 | bash_tool 降级、task_tool 未知agent、clarification 干净输出、persistence 往返、checkpoint 往返、catalog 扫描 |
+
+### L2 覆盖详情
+
+| 测试文件 | 测试数 | 覆盖场景 |
+|---------|--------|---------|
+| `test_client_pipeline.py` | 3 | generate_video 全链路、带图片生成、task_id 持久化 |
+| `test_sandbox_integration.py` | 3 | middleware 生命周期、bash_tool 沙箱路由、多沙箱文件隔离 |
+| `test_skills_to_workflow.py` | 3 | SKILL.md → WorkflowPlan 转换、6个公开 Skill 全部可解析、不存在 Skill 返回 None |
+
+### L3 真实场景验证
+
+| 测试 | 模型 | 耗时 | 结果 |
+|------|------|------|------|
+| `test_real_product_analyzer` | DeepSeek V4 Pro | 10.7s | ✅ 产出结构化产品分析 JSON |
+| `test_real_simple_dag` | DeepSeek V4 Pro | 12.6s | ✅ 2 节点 DAG 串联，product_analyzer → script_writer |
+| chat interface | DeepSeek V4 Pro | — | ✅ 对话接口可用 |
+
+### 关键发现
+
+- **真正解决了** `load_dotenv()` 缺失导致的 API key 无法从 .env 加载（已修复于 `config/app_config.py`）
+- **MagicMock 无法模拟** LangGraph `create_agent()` 的完整 tool-calling 消息链（L3 mock 场景标记为 skip）
+- **DAG Engine** 2 节点真实执行 12.6 秒，产出完整分镜脚本 JSON
 
 ---
 

@@ -105,8 +105,8 @@ def create_lensmind_agent(
         _inject_feature_tools(features, effective_tools)
 
     # 始终注入澄清反问工具
-    from lensmind.tools.builtins.clarification_tool import ask_clarification_tool
-    effective_tools.append(ask_clarification_tool)
+    from lensmind.tools.builtins.clarification_tool import ask_clarification
+    effective_tools.append(ask_clarification)
 
     if system_prompt is None:
         from lensmind.agents.lead_agent.prompt import LEAD_AGENT_SYSTEM_PROMPT
