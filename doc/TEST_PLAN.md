@@ -6,12 +6,22 @@
 
 ## 一、当前测试状态
 
-| 层 | 已有 | 测试数 |
-|---|------|--------|
-| L1 单元测试 | ✅ `test_config.py` `test_skills.py` `test_workflow.py` | 33 |
-| L2 集成测试 | ❌ 未开始 | 0 |
-| L3 场景测试 | ❌ 未开始 | 0 |
-| L4 生产监控 | ❌ 未开始 | 0 |
+| 层 | 已有 | 测试数 | 结果 |
+|---|------|--------|------|
+| L1 单元测试 | ✅ 6个测试文件 | 45 | ✅ 45/45 passed (8.93s) |
+| L2 集成测试 | ❌ 未开始 | 0 | — |
+| L3 场景测试 | ❌ 未开始 | 0 | — |
+| L4 生产监控 | ❌ 未开始 | 0 | — |
+
+### L1 覆盖详情
+
+| 测试文件 | 测试数 | 覆盖模块 |
+|---------|--------|---------|
+| `test_config.py` | 18 | ModelConfig, SubagentSpec, SandboxConfig, FeaturesConfig, MemoryConfig, SkillsConfig |
+| `test_skills.py` | 7 | parser, catalog, loader |
+| `test_workflow.py` | 8 | WorkflowNode, WorkflowPlan, WorkflowResult, DAG 验证, pipeline 构建 |
+| `test_sandbox_local.py` | 5 | LocalSandbox 命令执行、文件读写、超时处理、provider |
+| `test_tools_unit.py` | 7 | bash_tool 降级、task_tool 未知agent、clarification 干净输出、persistence 往返、checkpoint 往返、catalog 扫描 |
 
 ---
 
