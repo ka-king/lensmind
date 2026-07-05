@@ -1,0 +1,82 @@
+# LensMind 主配置文件
+config_version: 1
+
+# === 模型列表 ===
+models:
+  - name: claude-sonnet-4-6
+    display_name: Claude Sonnet 4.6
+    use: langchain_anthropic:ChatAnthropic
+    model: claude-sonnet-4-6
+    api_key: $ANTHROPIC_API_KEY
+    max_tokens: 4096
+    temperature: 0.7
+
+  - name: gpt-4o
+    display_name: GPT-4o
+    use: langchain_openai:ChatOpenAI
+    model: gpt-4o
+    api_key: $OPENAI_API_KEY
+
+default_model: claude-sonnet-4-6
+
+# === 子 Agent ===
+subagents:
+  timeout_seconds: 1800
+  agents:
+    product_analyzer:
+      timeout_seconds: 60
+      max_turns: 10
+    script_writer:
+      timeout_seconds: 120
+      max_turns: 20
+    model_image_artist:
+      timeout_seconds: 300
+      max_turns: 5
+    scene_designer:
+      timeout_seconds: 300
+      max_turns: 5
+    storyboard_animator:
+      timeout_seconds: 600
+      max_turns: 6
+    video_editor:
+      timeout_seconds: 300
+      max_turns: 8
+
+# === 沙箱 ===
+sandbox:
+  use: lensmind.sandbox.local:LocalSandboxProvider
+  allow_host_bash: false
+  bash_output_max_chars: 20000
+  bash_timeout_seconds: 600
+
+# === Skill 路径 ===
+skills:
+  public_path: skills/public/
+  system_path: .agent/skills/
+
+# === 记忆 ===
+memory:
+  enabled: true
+  max_facts: 50
+  max_injection_tokens: 2000
+
+# === 摘要 ===
+summarization:
+  enabled: true
+  trigger:
+    - type: tokens
+      value: 4000
+  keep:
+    type: messages
+    value: 20
+
+# === 功能开关 ===
+features:
+  sandbox: true
+  memory: true
+  summarization: false    # MVP 阶段关闭
+  subagent: true
+  vision: true
+  auto_title: false       # MVP 阶段关闭
+  loop_detection: true
+  guardrail: false        # MVP 阶段关闭

@@ -1,0 +1,7 @@
+{
+  "graphs": {
+    "lensmind": "./backend/packages/lensmind/agents/lead_agent/agent.py:make_lead_agent"
+  },
+  "env": ".env",
+  "python_version": "3.10"
+}

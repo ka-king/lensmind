@@ -1,0 +1,67 @@
+"""任务委托工具——Lead Agent 通过此工具将工作分派给子 Agent。
+
+这是整个多 Agent 协作系统的核心枢纽。
+Lead Agent 决策"谁来做"，task_tool 负责"创建并调用"。
+"""
+
+from __future__ import annotations
+
+import logging
+
+from langchain_core.tools import tool
+
+__author__ = "万"
+
+logger = logging.getLogger(__name__)
+
+
+@tool
+def task_tool(
+    subagent_type: str,
+    prompt: str,
+    context: str = "",
+) -> str:
+    """将任务委托给专业的子 Agent。
+
+    主编用此工具把具体工作分派给团队成员。
+
+    参数:
+        subagent_type: 子 Agent 类型，可选值:
+            - product_analyzer:    产品分析师——分析卖点、人群、风格
+            - script_writer:       编剧——创作分镜脚本和口播文案
+            - model_image_artist:  模特图生成师——为每个分镜生成模特展示图
+            - scene_designer:      场景设计师——为每个分镜生成背景图
+            - storyboard_animator: 分镜动画师——将静态图转为动态视频片段
+            - video_editor:        剪辑师——合成视频+配音+字幕
+        prompt: 给子 Agent 的任务描述。
+        context: 额外的上下文数据（JSON 字符串）。
+
+    返回:
+        子 Agent 的输出结果字符串。
+    """
+    from lensmind.subagents.config import SubagentRunConfig
+    from lensmind.subagents.registry import get_subagent_factory
+
+    factory = get_subagent_factory(subagent_type)
+    if factory is None:
+        available = ", ".join([
+            "product_analyzer", "script_writer", "model_image_artist",
+            "scene_designer", "storyboard_animator", "video_editor",
+        ])
+        return (
+            f"未知的子 Agent 类型 '{subagent_type}'。"
+            f"可用: {available}"
+        )
+
+    # 获取该子 Agent 的运行配置
+    config = SubagentRunConfig.for_subagent(subagent_type, None)
+
+    logger.info("委托子 Agent '%s': %s", subagent_type, prompt[:80])
+
+    # MVP 阶段返回占位信息，完整实现由 subagents/executor.py 承接
+    return (
+        f"[{subagent_type}] 任务已接收。\n"
+        f"prompt: {prompt[:200]}\n"
+        f"context: {context[:200]}\n"
+        f"(MVP 阶段：子 Agent 执行结果由 executor 模块负责，当前为占位输出)"
+    )
