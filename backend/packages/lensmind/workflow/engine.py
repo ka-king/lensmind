@@ -204,8 +204,8 @@ class WorkflowEngine:
                     logger.error("✗ [%s] 并行失败: %s", node.name, e)
 
     def _build_prompt(self, node: WorkflowNode, outputs: dict[str, Any]) -> str:
-        deps = {dep: outputs.get(dep, "") for dep in node.depends_on}
+        # 传所有 outputs（含初始 context + 上游节点输出），而不仅仅是 depends_on
         try:
-            return node.prompt_template.format(**deps)
+            return node.prompt_template.format(**outputs)
         except KeyError:
             return node.prompt_template
