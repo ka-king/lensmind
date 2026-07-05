@@ -75,11 +75,10 @@ def main():
         print(f"\n{'='*60}")
         print(f"状态: {result.get('status', 'unknown')}")
 
-        messages = result.get("messages", [])
-        if messages:
-            last_ai = messages[-1]
-            content = last_ai.content if hasattr(last_ai, 'content') else str(last_ai)
-            print(f"\n{content}")
+        outputs = result.get("outputs", {})
+        for node_name, node_output in outputs.items():
+            preview = str(node_output)[:120].replace("\n", " ")
+            print(f"  [{node_name}] {preview}...")
 
         print(f"\n{'='*60}")
 
