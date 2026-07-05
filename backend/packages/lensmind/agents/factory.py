@@ -1,7 +1,11 @@
-"""纯参数 Agent 工厂——不读文件、不读环境变量。
+"""纯参数 Agent 工厂——零文件 I/O 的执行图编译器。
 
-位于 langchain.create_agent 底层原语 和 config.yaml 驱动工厂之间的
-SDK 级入口。所有依赖通过参数传入。
+位于 langchain.create_agent 底层原语和 config.yaml 驱动工厂之间的 SDK 级入口。
+所有依赖通过参数注入，不读文件、不读环境变量。
+
+核心职责:
+  RuntimeFeatures → FEATURE_MIDDLEWARE_MAP → middleware chain → create_agent()
+  即: 功能声明 → 中间件映射 → 有序执行链 → 编译后的 Agent 图
 """
 
 from __future__ import annotations
@@ -13,6 +17,11 @@ from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware
 
 from lensmind.agents.features import RuntimeFeatures
+from lensmind.middlewares.clarification import ClarificationMiddleware
+from lensmind.middlewares.loop_detection import LoopDetectionMiddleware
+from lensmind.middlewares.subagent_limiter import SubagentLimitMiddleware
+from lensmind.middlewares.tool_error_handler import ToolErrorHandlingMiddleware
+from lensmind.sandbox.middleware import SandboxMiddleware
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
@@ -23,6 +32,33 @@ if TYPE_CHECKING:
 __author__ = "万"
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Feature → Middleware 映射表
+# ---------------------------------------------------------------------------
+
+# 执行顺序即列表顺序——每个条目定义了:
+#   feature_name: RuntimeFeatures 上的属性名
+#   middleware_cls: 默认中间件类
+#   always_on: True 则该中间件无论 feature 值如何都会被注入
+FEATURE_MIDDLEWARE_MAP: list[dict] = [
+    {"feature": "sandbox",        "class": SandboxMiddleware,           "always": False},
+    {"feature": None,              "class": ToolErrorHandlingMiddleware,  "always": True},
+    {"feature": "subagent",       "class": SubagentLimitMiddleware,      "always": False},
+    {"feature": "loop_detection",  "class": LoopDetectionMiddleware,      "always": False},
+    {"feature": None,              "class": ClarificationMiddleware,      "always": True,
+     "note": "必须在最后——after_model 反序时第一个拦截 ask_clarification"},
+]
+
+# 与 feature 绑定的额外工具——feature 开启时自动注入
+FEATURE_TOOL_MAP: dict[str, str] = {
+    "subagent": "lensmind.tools.task_tool:task_tool",
+}
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 
 def create_lensmind_agent(
@@ -37,6 +73,10 @@ def create_lensmind_agent(
 ) -> CompiledStateGraph:
     """纯参数创建 LensMind Agent——零文件 I/O。
 
+    middleware 和 features 二选一:
+    - middleware: 完整接管中间件链，适合需要精确控制顺序的场景
+    - features: 声明式开关，通过 FEATURE_MIDDLEWARE_MAP 自动组装
+
     参数:
         model: 已配置好的 ChatModel 实例。
         tools: 用户提供的工具列表。
@@ -48,9 +88,6 @@ def create_lensmind_agent(
 
     返回:
         编译后的 LangGraph StateGraph，可调用 .invoke() / .stream()。
-
-    异常:
-        ValueError: 同时指定 middleware 和 features 时抛出。
     """
     if middleware is not None and features is not None:
         raise ValueError("不能同时指定 'middleware'（完整接管）和 'features'。")
@@ -63,11 +100,9 @@ def create_lensmind_agent(
         feat = features or RuntimeFeatures()
         effective_middleware = _assemble_from_features(feat)
 
-    # 启用子 Agent 功能时自动注入 task_tool
-    if features and features.subagent:
-        from lensmind.tools.task_tool import task_tool
-        if task_tool.name not in {t.name for t in effective_tools}:
-            effective_tools.append(task_tool)
+    # Feature 绑定的工具自动注入
+    if features:
+        _inject_feature_tools(features, effective_tools)
 
     # 始终注入澄清反问工具
     from lensmind.tools.builtins.clarification_tool import ask_clarification_tool
@@ -83,6 +118,10 @@ def create_lensmind_agent(
         len(effective_tools), len(effective_middleware), name,
     )
 
+    # ModelContextMiddleware 插入最前面——让 tool 层能获取 model
+    from lensmind.agents.model_context_middleware import ModelContextMiddleware
+    effective_middleware.insert(0, ModelContextMiddleware(model))
+
     return create_agent(
         model=model,
         tools=effective_tools or None,
@@ -93,48 +132,52 @@ def create_lensmind_agent(
     )
 
 
-def _assemble_from_features(feat: RuntimeFeatures) -> list[AgentMiddleware]:
-    """从 RuntimeFeatures 组装有序的中间件链。
+# ---------------------------------------------------------------------------
+# Internal: middleware assembly + tool injection
+# ---------------------------------------------------------------------------
 
-    顺序（不可变）:
-      0. SandboxMiddleware           — 沙箱隔离
-      1. ToolErrorHandlingMiddleware  — 工具错误处理
-      2. SubagentLimitMiddleware      — 子 Agent 并发限制
-      3. LoopDetectionMiddleware      — 死循环检测
-      4. ClarificationMiddleware      — 需求澄清（必须在最后）
+
+def _assemble_from_features(feat: RuntimeFeatures) -> list[AgentMiddleware]:
+    """从 RuntimeFeatures 按 FEATURE_MIDDLEWARE_MAP 组装中间件链。
+
+    遍历映射表:
+    - always_on → 无条件注入默认中间件
+    - feature=True → 注入默认中间件
+    - feature 是 AgentMiddleware 实例 → 注入自定义实现（替换默认）
+    - feature=False → 跳过
     """
     chain: list[AgentMiddleware] = []
 
-    # 沙箱中间件
-    if feat.sandbox is not False:
-        if isinstance(feat.sandbox, AgentMiddleware):
-            chain.append(feat.sandbox)
-        else:
-            from lensmind.sandbox.middleware import SandboxMiddleware
-            chain.append(SandboxMiddleware())
+    for entry in FEATURE_MIDDLEWARE_MAP:
+        feature_name = entry["feature"]
+        middleware_cls = entry["class"]
+        always_on = entry["always"]
 
-    # 工具错误处理（始终开启）
-    from lensmind.middlewares.tool_error_handler import ToolErrorHandlingMiddleware
-    chain.append(ToolErrorHandlingMiddleware())
-
-    # 子 Agent 限制
-    if feat.subagent is not False:
-        from lensmind.middlewares.subagent_limiter import SubagentLimitMiddleware
-        if isinstance(feat.subagent, AgentMiddleware):
-            chain.append(feat.subagent)
-        else:
-            chain.append(SubagentLimitMiddleware())
-
-    # 死循环检测
-    if feat.loop_detection is not False:
-        from lensmind.middlewares.loop_detection import LoopDetectionMiddleware
-        if isinstance(feat.loop_detection, AgentMiddleware):
-            chain.append(feat.loop_detection)
-        else:
-            chain.append(LoopDetectionMiddleware())
-
-    # 澄清反问（必须在最后——after_model 反序时第一个拦截 ask_clarification）
-    from lensmind.middlewares.clarification import ClarificationMiddleware
-    chain.append(ClarificationMiddleware())
+        if always_on:
+            chain.append(middleware_cls())
+        elif feature_name is not None:
+            feature_value = getattr(feat, feature_name)
+            if feature_value is False:
+                continue
+            if isinstance(feature_value, AgentMiddleware):
+                chain.append(feature_value)
+            else:
+                chain.append(middleware_cls())
 
     return chain
+
+
+def _inject_feature_tools(feat: RuntimeFeatures, tools: list[BaseTool]) -> None:
+    """根据 feature 开关注入绑定的工具。"""
+    import importlib
+
+    for feature_name, tool_path in FEATURE_TOOL_MAP.items():
+        feature_value = getattr(feat, feature_name)
+        if feature_value is False:
+            continue
+        # 反射加载工具
+        module_path, tool_name = tool_path.split(":")
+        module = importlib.import_module(module_path)
+        tool_obj = getattr(module, tool_name)
+        if tool_obj.name not in {t.name for t in tools}:
+            tools.append(tool_obj)

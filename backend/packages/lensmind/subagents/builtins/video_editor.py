@@ -1,6 +1,6 @@
 """剪辑师子 Agent——合成最终视频：拼接片段、叠加配音、烧录字幕。
 
-流程管线的最后一环。使用 FFmpeg 执行实际的视频合成操作。
+Prompt 定义: builtins/prompts/video_editor.md
 """
 
 from __future__ import annotations
@@ -9,49 +9,15 @@ from langchain.agents import create_agent
 from langchain_core.language_models import BaseChatModel
 from langgraph.graph.state import CompiledStateGraph
 
+from lensmind.subagents.builtins import _load_prompt
 from lensmind.subagents.registry import register_subagent
 
 __author__ = "万"
 
-VIDEO_EDITOR_PROMPT = """你是一个专业的视频剪辑师。
-
-## 任务
-将分镜片段、配音音频、字幕文件和背景音乐合成为最终视频。
-
-## 输入
-- 视频片段列表（按分镜顺序）
-- TTS 配音音频文件
-- 字幕文件 (SRT 格式)
-- 背景音乐文件（可选）
-
-## 输出格式
-```json
-{
-  "final_video_path": "/output/final_video.mp4",
-  "duration_sec": 30.0,
-  "components": {
-    "clips": ["/output/clip_01.mp4"],
-    "audio": "/output/voiceover.mp3",
-    "subtitles": "/output/subtitles.srt"
-  }
-}
-```
-
-## FFmpeg 合成步骤
-1. concat demuxer — 按顺序拼接视频片段
-2. 叠加配音音频（替换原片段音频）
-3. subtitles filter — 将字幕烧录到画面
-4. amix filter — 混合背景音乐（音量降低 -20dB）
-5. 输出最终 MP4 文件
-
-## 重要规则
-- MVP 阶段如果没有真实文件，生成 FFmpeg 命令草稿即可
-- 最终视频分辨率 1080x1920（竖屏）或 1920x1080（横屏）
-"""
+VIDEO_EDITOR_PROMPT = _load_prompt("video_editor")
 
 
 def _create_video_editor(model: BaseChatModel) -> CompiledStateGraph:
-    """创建剪辑师 Agent 实例。"""
     return create_agent(
         model=model,
         system_prompt=VIDEO_EDITOR_PROMPT,

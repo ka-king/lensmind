@@ -1,7 +1,11 @@
-"""任务委托工具——Lead Agent 通过此工具将工作分派给子 Agent。
+"""任务委托工具——Lead Agent 的子 Agent 统一调度入口。
 
-这是整个多 Agent 协作系统的核心枢纽。
-Lead Agent 决策"谁来做"，task_tool 负责"创建并调用"。
+职责:
+  1. 查找子 Agent 工厂（registry）
+  2. 构建运行配置（policy）
+  3. 委托给 executor 执行（execution）
+
+不直接执行子 Agent——executor 负责创建 graph 并 invoke。
 """
 
 from __future__ import annotations
@@ -39,7 +43,9 @@ def task_tool(
     返回:
         子 Agent 的输出结果字符串。
     """
+    from lensmind.agents._context import get_current_model
     from lensmind.subagents.config import SubagentRunConfig
+    from lensmind.subagents.executor import execute_subagent
     from lensmind.subagents.registry import get_subagent_factory
 
     factory = get_subagent_factory(subagent_type)
@@ -53,15 +59,11 @@ def task_tool(
             f"可用: {available}"
         )
 
-    # 获取该子 Agent 的运行配置
     config = SubagentRunConfig.for_subagent(subagent_type, None)
-
-    logger.info("委托子 Agent '%s': %s", subagent_type, prompt[:80])
-
-    # MVP 阶段返回占位信息，完整实现由 subagents/executor.py 承接
-    return (
-        f"[{subagent_type}] 任务已接收。\n"
-        f"prompt: {prompt[:200]}\n"
-        f"context: {context[:200]}\n"
-        f"(MVP 阶段：子 Agent 执行结果由 executor 模块负责，当前为占位输出)"
+    logger.info(
+        "task_tool 调度 → %s (timeout=%ds, max_turns=%d)",
+        subagent_type, config.timeout_seconds, config.max_turns,
     )
+
+    model = get_current_model()
+    return execute_subagent(subagent_type, prompt, context, model)

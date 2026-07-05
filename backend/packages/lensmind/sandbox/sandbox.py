@@ -26,15 +26,15 @@ class Sandbox(ABC):
     每个沙箱实例有自己的工作目录，所有操作限制在该目录内。
     """
 
-    _id: str
+    _sandbox_id: str
 
-    def __init__(self, id: str):
-        self._id = id
+    def __init__(self, sandbox_id: str):
+        self._sandbox_id = sandbox_id
 
     @property
-    def id(self) -> str:
+    def sandbox_id(self) -> str:
         """沙箱唯一标识符。"""
-        return self._id
+        return self._sandbox_id
 
     @abstractmethod
     def execute_command(

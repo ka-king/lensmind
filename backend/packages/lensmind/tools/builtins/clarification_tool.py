@@ -25,4 +25,4 @@ def ask_clarification(question: str) -> str:
     返回:
         用户的回复文本。
     """
-    return f"[需要澄清] {question}"
+    return question

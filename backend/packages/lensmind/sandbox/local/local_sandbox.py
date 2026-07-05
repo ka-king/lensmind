@@ -1,12 +1,17 @@
 """本地子进程沙箱——MVP 阶段的默认沙箱实现。
 
-通过 subprocess 创建独立的命令执行环境。
+通过 subprocess 创建受控的命令执行环境。
 每个沙箱实例有自己的临时工作目录。
+
+注意: 这是受控执行环境（controlled execution environment），
+不是完全隔离的 OS 级沙箱。进程隔离、网络隔离、资源限制等
+需要 Docker/E2B provider 才能实现。
 """
 
 from __future__ import annotations
 
 import os
+import shlex
 import subprocess
 import tempfile
 import uuid
@@ -22,8 +27,8 @@ class LocalSandbox(Sandbox):
     所有文件读写和命令执行都在 workspace/ 目录下进行。
     """
 
-    def __init__(self, id: str, workspace: str):
-        super().__init__(id)
+    def __init__(self, sandbox_id: str, workspace: str):
+        super().__init__(sandbox_id)
         self._workspace = workspace
         os.makedirs(workspace, exist_ok=True)
 
@@ -48,9 +53,15 @@ class LocalSandbox(Sandbox):
 
         使用 subprocess.run 的子进程隔离，不修改宿主机状态。
         """
+        # 使用 shlex.split 避免 shell=True 的命令注入风险
+        try:
+            cmd_parts = shlex.split(command)
+        except ValueError:
+            cmd_parts = [command]
+
         proc = subprocess.run(
-            command,
-            shell=True,
+            cmd_parts,
+            shell=False,
             capture_output=True,
             text=True,
             cwd=self._workspace,
@@ -109,6 +120,6 @@ class LocalSandboxProvider(SandboxProvider):
             f"lensmind_sandbox_{uuid.uuid4().hex[:8]}"
         )
         return LocalSandbox(
-            id=uuid.uuid4().hex,
+            sandbox_id=uuid.uuid4().hex,
             workspace=workspace,
         )

@@ -1,26 +1,51 @@
-"""沙箱中间件——拦截 Agent 的 Bash 和文件操作，路由到沙箱执行。
+"""沙箱中间件——在 Agent 生命周期内管理沙箱实例。
 
-在 Agent 的 before_agent 阶段获取沙箱实例，
-在 after_agent 阶段释放沙箱资源。
+before_agent: 通过 SandboxProvider 创建沙箱，注入 contextvar
+after_agent:  释放沙箱资源，清除 contextvar
+
+Tool 层通过 sandbox._context.get_current_sandbox() 获取当前沙箱，
+不直接创建沙箱，保持执行路径一致。
 """
 
 from __future__ import annotations
 
+import logging
+
 from langchain.agents.middleware import AgentMiddleware
+from langchain.agents.middleware.types import AgentState, AgentRuntime
+
+from lensmind.sandbox._context import clear_current_sandbox, set_current_sandbox
+from lensmind.sandbox.local.local_sandbox import LocalSandboxProvider
 
 __author__ = "万"
 
+logger = logging.getLogger(__name__)
+
+# MVP 使用本地沙箱 provider
+_default_provider = LocalSandboxProvider()
+
 
 class SandboxMiddleware(AgentMiddleware):
-    """沙箱中间件。
-
-    MVP 阶段为占位实现。完整版将拦截 Bash 和文件操作工具调用，
-    通过 SandboxProvider 路由到隔离环境执行。
+    """沙箱生命周期管理器。
 
     生命周期:
-        before_agent → 创建/获取沙箱
-        工具调用    → 路由到沙箱执行
-        after_agent → 清理/释放沙箱
+        before_agent → 创建沙箱实例，注入 contextvar
+        after_agent  → 释放沙箱资源，清除 contextvar
     """
 
-    pass
+    def __init__(self, provider=None):
+        super().__init__()
+        self._provider = provider or _default_provider
+
+    def before_agent(self, state: AgentState, runtime: AgentRuntime) -> dict | None:
+        sandbox = self._provider.create_sandbox()
+        set_current_sandbox(sandbox)
+        logger.debug("沙箱 %s 已创建", sandbox.sandbox_id)
+        return None
+
+    def after_agent(self, state: AgentState, runtime: AgentRuntime) -> dict | None:
+        sandbox = get_current_sandbox()
+        if sandbox:
+            clear_current_sandbox()
+            logger.debug("沙箱 %s 已释放", sandbox.sandbox_id)
+        return None

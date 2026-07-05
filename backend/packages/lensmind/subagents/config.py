@@ -1,6 +1,12 @@
-"""子 Agent 运行配置——合并 SubagentSpec + SubagentOverride。
+"""子 Agent policy resolution engine——三段合并策略。
 
-配置优先级: spec 默认值 → config.yaml override → 全局 fallback
+这不是简单的配置读取，而是策略解析引擎。
+合并优先级: spec 默认值 → config.yaml override → 全局 fallback
+
+未来演化方向:
+  - 抽 ResolutionStrategy (SPEC_FIRST / OVERRIDE_FIRST / COST_OPTIMIZED)
+  - Tool-level config override
+  - A/B testing 动态覆盖
 """
 
 from __future__ import annotations
@@ -15,7 +21,7 @@ __author__ = "万"
 # 6 个内置子 Agent 的硬编码默认值（当 config.yaml 中没有 spec 定义时 fallback）
 _DEFAULTS: dict[str, dict[str, int]] = {
     "product_analyzer":   {"timeout_seconds": 60,  "max_turns": 10},
-    "script_writer":      {"timeout_seconds": 120, "max_turns": 20},
+    "script_writer":{"timeout_seconds": 120, "max_turns": 20},
     "model_image_artist": {"timeout_seconds": 300, "max_turns": 5},
     "scene_designer":     {"timeout_seconds": 300, "max_turns": 5},
     "storyboard_animator":{"timeout_seconds": 600, "max_turns": 6},
