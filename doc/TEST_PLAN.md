@@ -10,10 +10,10 @@
 |---|------|--------|------|
 | L1 单元测试 | ✅ 5个文件 | 45 | ✅ 45/45 passed |
 | L2 集成测试 | ✅ 3个文件 | 9 | ✅ 9/9 passed |
-| L3 场景测试 | ✅ 真实API | 3 | ✅ 3/3 passed (DeepSeek V4 Pro) |
+| L3 场景测试 | ✅ 真实API | 5 | ✅ 5/5 passed (DeepSeek V4 Pro) |
 | L3 场景测试 | ⏸️ 需API key | 4 | ⏸️ 4 skipped |
 | L4 生产监控 | ❌ 未开始 | 0 | — |
-| **总计** | | **57 passed / 4 skipped** | **(~9s L1+L2, +21s L3)** |
+| **总计** | | **59 passed / 4 skipped** | **(~9s L1+L2, +70s L3)** |
 
 ### L1 覆盖详情
 
@@ -38,14 +38,16 @@
 | 测试 | 模型 | 耗时 | 结果 |
 |------|------|------|------|
 | `test_real_product_analyzer` | DeepSeek V4 Pro | 10.7s | ✅ 产出结构化产品分析 JSON |
-| `test_real_simple_dag` | DeepSeek V4 Pro | 12.6s | ✅ 2 节点 DAG 串联，product_analyzer → script_writer |
-| chat interface | DeepSeek V4 Pro | — | ✅ 对话接口可用 |
+| `test_real_simple_dag` | DeepSeek V4 Pro | 12.6s | ✅ 2 节点 DAG 串联 |
+| `test_full_6_node_pipeline` | DeepSeek V4 Pro | 25.4s | ✅ 完整6节点，产出分镜+FFmpeg方案 |
+| `test_pipeline_with_style_param` | DeepSeek V4 Pro | 40.4s | ✅ 运动鞋风格参数，产出定制脚本 |
+| `test_real_chat` | DeepSeek V4 Pro | — | ✅ 对话可用 |
 
-### 关键发现
+### 关键发现（L3 测试中发现并修复的 bug）
 
-- **真正解决了** `load_dotenv()` 缺失导致的 API key 无法从 .env 加载（已修复于 `config/app_config.py`）
-- **MagicMock 无法模拟** LangGraph `create_agent()` 的完整 tool-calling 消息链（L3 mock 场景标记为 skip）
-- **DAG Engine** 2 节点真实执行 12.6 秒，产出完整分镜脚本 JSON
+- **Bug #1: `load_dotenv()` 缺失** — API key 无法从 .env 加载（已修复 `config/app_config.py`）
+- **Bug #2: `_build_prompt` 只传上游依赖输出** — 初始 context（如 `product_context`）无法到达第一个节点（已修复 `workflow/engine.py`）
+- **Mock 限制**: MagicMock 无法模拟 LangGraph `create_agent()` 完整 tool-calling 消息链，需要 API key 的真实场景测试
 
 ---
 
@@ -55,19 +57,23 @@
 
 **原则：测确定性逻辑，不调真实 LLM。**
 
-| 模块 | 测试内容 | 已有 | 待补 |
-|------|---------|------|------|
-| `config/app_config.py` | ModelConfig 解析、SubagentSpec from_dict、SecurityLevel 派生 | 15 | — |
-| `skills/parser.py` | SKILL.md frontmatter 解析、缺 name 报错、pipeline 节点解析 | 4 | — |
-| `skills/catalog.py` | 多路径扫描、get_pipeline 转换、public/system 分离 | 2 | — |
-| `skills/loader.py` | prompt 构建、context 注入 | 1 | — |
-| `workflow/plan.py` | DAG 验证（缺依赖、无入口）、pipeline 构建 | 5 | 1 |
-| `workflow/result.py` | NodeResult 计时、WorkflowResult 状态追踪 | 3 | — |
-| `workflow/engine.py` | — | 0 | **3** |
-| `subagents/config.py` | SubagentRunConfig 三层合并 | 1 | — |
-| `sandbox/sandbox.py` | security_level 派生 allow_host_bash | 1 | — |
-| `sandbox/local/` | — | 0 | **2** |
-| `tools/builtins/bash_tool.py` | — | 0 | **1** |
+| 模块 | 测试内容 | 已有 |
+|------|---------|------|
+| `config/app_config.py` | ModelConfig 解析、SubagentSpec from_dict、SecurityLevel 派生 | 18 ✅ |
+| `skills/parser.py` | SKILL.md frontmatter 解析、缺 name 报错、pipeline 节点解析 | 4 ✅ |
+| `skills/catalog.py` | 多路径扫描、get_pipeline 转换、public/system 分离 | 2 ✅ |
+| `skills/loader.py` | prompt 构建、context 注入 | 1 ✅ |
+| `workflow/plan.py` | DAG 验证（缺依赖、无入口）、pipeline 构建 | 5 ✅ |
+| `workflow/result.py` | NodeResult 计时、WorkflowResult 状态追踪 | 3 ✅ |
+| `workflow/engine.py` | — | 集成覆盖 ✅ |
+| `subagents/config.py` | SubagentRunConfig 三层合并 | 1 ✅ |
+| `sandbox/sandbox.py` | security_level 派生 allow_host_bash | 1 ✅ |
+| `sandbox/local/` | 命令执行、文件读写、超时、provider | 5 ✅ |
+| `tools/builtins/bash_tool.py` | 沙箱降级、无效命令 | 2 ✅ |
+| `tools/builtins/clarification_tool.py` | 干净输出、无前缀 | 1 ✅ |
+| `tools/task_tool.py` | 未知 subagent 报错 | 1 ✅ |
+| `persistence/` | TaskRepository 往返、Checkpoint 往返 | 2 ✅ |
+| `skills/catalog.py` | 真实路径扫描 | 1 ✅ |
 | `tools/task_tool.py` | — | 0 | **1** |
 
 **待补 8 个：**
