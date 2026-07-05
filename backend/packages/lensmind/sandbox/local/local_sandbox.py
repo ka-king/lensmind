@@ -59,20 +59,27 @@ class LocalSandbox(Sandbox):
         except ValueError:
             cmd_parts = [command]
 
-        proc = subprocess.run(
-            cmd_parts,
-            shell=False,
-            capture_output=True,
-            text=True,
-            cwd=self._workspace,
-            env={**os.environ, **(env or {})},
-            timeout=timeout,
-        )
-        return CommandResult(
-            returncode=proc.returncode,
-            stdout=proc.stdout,
-            stderr=proc.stderr,
-        )
+        try:
+            proc = subprocess.run(
+                cmd_parts,
+                shell=False,
+                capture_output=True,
+                text=True,
+                cwd=self._workspace,
+                env={**os.environ, **(env or {})},
+                timeout=timeout,
+            )
+            return CommandResult(
+                returncode=proc.returncode,
+                stdout=proc.stdout,
+                stderr=proc.stderr,
+            )
+        except subprocess.TimeoutExpired as e:
+            return CommandResult(
+                returncode=-1,
+                stdout=e.stdout.decode("utf-8", errors="replace") if e.stdout else "",
+                stderr=f"命令超时 (>{timeout}s)" if timeout else "命令超时",
+            )
 
     def read_file(self, path: str) -> str:
         """读取沙箱内的文件。"""
