@@ -86,7 +86,8 @@ class LensMindClient:
         返回:
             {"status": str, "outputs": dict, "final_node": str}
         """
-        from lensmind.workflow import WorkflowEngine, build_video_pipeline
+        from lensmind.skills import get_catalog
+        from lensmind.workflow import WorkflowEngine
 
         context_parts = [f"产品名称: {product_name}"]
         if product_images:
@@ -96,7 +97,16 @@ class LensMindClient:
         context_parts.append(f"风格: {style}, 时长: {duration_sec}秒")
         initial_context = {"product_context": "\n".join(context_parts)}
 
-        plan = build_video_pipeline()
+        # 从 SkillCatalog 加载 pipeline 定义
+        catalog = get_catalog()
+        catalog.scan(
+            public_path=self._config.skills.public_path,
+            system_path=self._config.skills.system_path,
+        )
+        plan = catalog.get_pipeline("product-video")
+        if plan is None:
+            raise ValueError("Skill 'product-video' 未在 catalog 中找到或缺少 pipeline 定义")
+
         engine = WorkflowEngine(self._model)
 
         try:
