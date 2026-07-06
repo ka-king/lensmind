@@ -132,7 +132,8 @@ class LensMindClient:
         if plan is None:
             raise ValueError("Skill 'product-video' 未在 catalog 中找到或缺少 pipeline 定义")
 
-        engine = WorkflowEngine(self._model)
+        # model 同时作为导演审核（reviewer_model），子Agent 产出后由导演复审
+        engine = WorkflowEngine(self._model, reviewer_model=self._model, max_review_rounds=2)
 
         import time
         import uuid

@@ -17,8 +17,9 @@ __author__ = "万"
 PRODUCT_ANALYZER_PROMPT = _load_prompt("product_analyzer")
 
 
-def _create_product_analyzer(model: BaseChatModel) -> CompiledStateGraph:
+def _create_product_analyzer(model: BaseChatModel, extra_tools: list | None = None) -> CompiledStateGraph:
     return create_agent(
+        tools=extra_tools or None,
         model=model,
         system_prompt=PRODUCT_ANALYZER_PROMPT,
         name="product_analyzer",

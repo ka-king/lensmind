@@ -17,8 +17,9 @@ __author__ = "万"
 SCENE_DESIGNER_PROMPT = _load_prompt("scene_designer")
 
 
-def _create_scene_designer(model: BaseChatModel) -> CompiledStateGraph:
+def _create_scene_designer(model: BaseChatModel, extra_tools: list | None = None) -> CompiledStateGraph:
     return create_agent(
+        tools=extra_tools or None,
         model=model,
         system_prompt=SCENE_DESIGNER_PROMPT,
         name="scene_designer",

@@ -17,8 +17,9 @@ __author__ = "万"
 STORYBOARD_ANIMATOR_PROMPT = _load_prompt("storyboard_animator")
 
 
-def _create_storyboard_animator(model: BaseChatModel) -> CompiledStateGraph:
+def _create_storyboard_animator(model: BaseChatModel, extra_tools: list | None = None) -> CompiledStateGraph:
     return create_agent(
+        tools=extra_tools or None,
         model=model,
         system_prompt=STORYBOARD_ANIMATOR_PROMPT,
         name="storyboard_animator",

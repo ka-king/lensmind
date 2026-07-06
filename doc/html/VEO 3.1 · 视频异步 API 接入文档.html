@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<!-- saved from url=(0047)https://doc.newtoken.club/api-docs/veo-3-1.html -->
+<html lang="zh-CN" data-eusoft-scrollable-element="1"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style data-merge-styles="true"></style>
+  
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VEO 3.1 · 视频异步 API 接入文档</title>
+  <link rel="stylesheet" href="./VEO 3.1 · 视频异步 API 接入文档_files/doc.css">
+<style>.eudic-tippy-content-container[_ngcontent-ng-c2546567076]{max-width:250px!important}.eusoft-chrome-extension-popup-menu[_ngcontent-ng-c2546567076]{position:fixed;z-index:2147483647;top:50%}.eusoft-chrome-extension-popup-menu.eusoft-chrome-extension-popup-menu-left[_ngcontent-ng-c2546567076]{left:4px}.eusoft-chrome-extension-popup-menu.eusoft-chrome-extension-popup-menu-right[_ngcontent-ng-c2546567076]{right:4px}.eusoft-chrome-extension-mask-container[_ngcontent-ng-c2546567076]{background-color:transparent;position:fixed;top:0;right:0;bottom:0;left:0;z-index:2147483646}</style><style>.eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{position:fixed!important;bottom:50px!important;right:50px!important;border-radius:5px!important;box-shadow:0 6px 24px #00000014!important;z-index:2147483647!important}.eusoft-eudic-translate-failed-content-script[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.light-en   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.light-fr   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.light-de   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.light-es   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.dark-en   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #595959!important;background-color:#212125!important}html.dark-fr   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #595959!important;background-color:#212125!important}html.dark-de   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #595959!important;background-color:#212125!important}html.dark-es   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #595959!important;background-color:#212125!important}html.sepia-en   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.sepia-fr   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.sepia-de   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.sepia-es   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.green-en   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.green-fr   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.green-de   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.green-es   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}</style></head>
+<body>
+  <header>
+    <a href="https://doc.newtoken.club/index.html">返回接口目录</a>
+    <h1>VEO 3.1 · 视频异步 API 接入文档</h1>
+    <p>通过 <code>POST /v1/videos</code> 创建 8 秒视频任务，支持文生视频、首尾帧图生视频、多参考图生成视频。</p>
+  </header>
+  <main>
+    <article>
+      <a class="notice-link" href="https://doc.newtoken.club/api-docs/omni-video-content-review-guide.html" aria-label="查看视频生成内容审查避坑指南">
+        <span class="notice-mark" aria-hidden="true">!</span>
+        <span class="notice-body">
+          <strong>内容审查避坑提醒：提交 VEO 3.1 任务前建议先看详细指南</strong>
+          <span class="notice-summary">如果返回 <code>didn't pass content review</code>，重试或换账号通常无效，需要改提示词、换参考图或避开受保护 IP。</span>
+          <span class="notice-checks">
+            <span>先排查真人正脸、名人、未成年人</span>
+            <span>再检查性/暴力/危险、医疗病症、政治宗教</span>
+            <span>多参考图和首尾帧都要逐张确认素材风险</span>
+          </span>
+        </span>
+        <span class="notice-cta">查看详细页面 <span aria-hidden="true">→</span></span>
+      </a>
+
+      <h2>提交任务</h2>
+<pre><code>curl -X POST https://xxx.xxx.xxx/v1/videos \
+  -H "Authorization: Bearer api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "veo-3-1",
+    "prompt": "a cinematic product reveal, smooth camera movement, natural lighting",
+    "duration": 8,
+    "aspect_ratio": "16:9"
+  }'</code></pre>
+
+      <h2>图生视频</h2>
+<pre><code>curl -X POST https://xxx.xxx.xxx/v1/videos \
+  -H "Authorization: Bearer api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "veo-3-1",
+    "prompt": "the subject turns toward the camera, cinematic lighting",
+    "duration": 8,
+    "aspect_ratio": "9:16",
+    "images": [
+      "https://your-cdn.com/first-frame.jpg"
+    ]
+  }'</code></pre>
+
+      <h2>首尾帧模式</h2>
+<pre><code>curl -X POST https://xxx.xxx.xxx/v1/videos \
+  -H "Authorization: Bearer api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "veo-3-1",
+    "prompt": "animate from the first frame to the last frame with smooth natural motion",
+    "duration": 8,
+    "aspect_ratio": "16:9",
+    "images": [
+      "https://your-cdn.com/first-frame.jpg",
+      "https://your-cdn.com/last-frame.jpg"
+    ]
+  }'</code></pre>
+
+      <h2>多参考图</h2>
+<pre><code>curl -X POST https://xxx.xxx.xxx/v1/videos \
+  -H "Authorization: Bearer api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "veo-3-1",
+    "prompt": "combine these references into one polished brand video",
+    "duration": 8,
+    "aspect_ratio": "16:9",
+    "Ingredients_images": [
+      "https://your-cdn.com/ref-1.jpg",
+      "https://your-cdn.com/ref-2.jpg",
+      "https://your-cdn.com/ref-3.jpg"
+    ]
+  }'</code></pre>
+
+      <h2>查询任务</h2>
+<pre><code>curl https://xxx.xxx.xxx/v1/videos/8c7e4b0e6f3b4b0a9e0a0d8f4f0c1234 \
+  -H "Authorization: Bearer api-key"</code></pre>
+
+      <h2>查询返回示例</h2>
+      <p>处理中：</p>
+<pre><code>{
+  "id": "8c7e4b0e6f3b4b0a9e0a0d8f4f0c1234",
+  "task_id": "8c7e4b0e6f3b4b0a9e0a0d8f4f0c1234",
+  "object": "video",
+  "created_at": 1714200000000,
+  "status": "in_progress",
+  "state": "in_progress",
+  "task_status": "in_progress",
+  "progress": 45,
+  "model": "veo-3-1",
+  "video_url": null,
+  "metadata": {
+    "result_urls": []
+  },
+  "seconds": "8",
+  "duration": 8,
+  "aspect_ratio": "16:9",
+  "success": false,
+  "final": false
+}</code></pre>
+      <p>完成：</p>
+<pre><code>{
+  "id": "8c7e4b0e6f3b4b0a9e0a0d8f4f0c1234",
+  "task_id": "8c7e4b0e6f3b4b0a9e0a0d8f4f0c1234",
+  "object": "video",
+  "created_at": 1714200000000,
+  "status": "completed",
+  "state": "completed",
+  "task_status": "completed",
+  "progress": 100,
+  "model": "veo-3-1",
+  "video_url": "https://xxx.xxx.xxx/generated/video.mp4",
+  "url": "https://xxx.xxx.xxx/generated/video.mp4",
+  "metadata": {
+    "result_urls": ["https://xxx.xxx.xxx/generated/video.mp4"]
+  },
+  "seconds": "8",
+  "duration": 8,
+  "aspect_ratio": "16:9",
+  "success": true,
+  "final": true,
+  "completed_at": 1714200180000
+}</code></pre>
+      <p>失败：</p>
+<pre><code>{
+  "id": "8c7e4b0e6f3b4b0a9e0a0d8f4f0c1234",
+  "task_id": "8c7e4b0e6f3b4b0a9e0a0d8f4f0c1234",
+  "object": "video",
+  "created_at": 1714200000000,
+  "status": "failed",
+  "state": "failed",
+  "task_status": "failed",
+  "progress": 0,
+  "model": "veo-3-1",
+  "video_url": null,
+  "metadata": {
+    "result_urls": []
+  },
+  "success": false,
+  "final": true,
+  "error": {
+    "message": "任务失败原因",
+    "code": "task_failed"
+  }
+}</code></pre>
+
+      <h2>字段</h2>
+      <table>
+        <tbody><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+        <tr><td><code>model</code></td><td>string</td><td>是</td><td>固定为 <code>veo-3-1</code></td></tr>
+        <tr><td><code>prompt</code></td><td>string</td><td>是</td><td>视频内容描述</td></tr>
+        <tr><td><code>duration</code></td><td>int</td><td>是</td><td>固定为 <code>8</code>，其他值会返回 400</td></tr>
+        <tr><td><code>aspect_ratio</code></td><td>string</td><td>否</td><td><code>16:9</code> / <code>9:16</code>，默认横屏</td></tr>
+        <tr><td><code>images</code></td><td>array</td><td>否</td><td>图生视频参考图，传 1 张为单图生视频，传 2 张为首尾帧模式；顺序为首帧、尾帧。数组项使用图片 URL 字符串</td></tr>
+        <tr><td><code>Ingredients_images</code></td><td>array</td><td>否</td><td>多参考图模式，最多 8 张；传入后优先按多参考图视频生成处理</td></tr>
+      </tbody></table>
+
+      <h2>查询返回字段</h2>
+      <table>
+        <tbody><tr><th>字段</th><th>说明</th></tr>
+        <tr><td><code>id</code> / <code>task_id</code></td><td>任务 ID，用于继续查询</td></tr>
+        <tr><td><code>status</code> / <code>state</code> / <code>task_status</code></td><td>任务状态，三者值一致，便于兼容不同中转站</td></tr>
+        <tr><td><code>progress</code></td><td>进度，0-100</td></tr>
+        <tr><td><code>video_url</code></td><td>视频任务完成后的主结果地址</td></tr>
+        <tr><td><code>url</code></td><td>完成后的通用结果地址，视频任务等同于 <code>video_url</code></td></tr>
+        <tr><td><code>metadata.result_urls</code></td><td>结果地址数组，通常取第一项即可</td></tr>
+        <tr><td><code>seconds</code> / <code>duration</code></td><td>任务时长，来自提交参数</td></tr>
+        <tr><td><code>aspect_ratio</code></td><td>画面比例，来自提交参数</td></tr>
+        <tr><td><code>success</code></td><td><code>status</code> 为 <code>completed</code> 时为 <code>true</code></td></tr>
+        <tr><td><code>final</code></td><td><code>completed</code> 或 <code>failed</code> 时为 <code>true</code></td></tr>
+        <tr><td><code>error.message</code></td><td>失败原因，仅失败时返回</td></tr>
+      </tbody></table>
+
+      <h2>返回状态</h2>
+      <table>
+        <tbody><tr><th>status</th><th>含义</th><th>说明</th></tr>
+        <tr><td><code>queued</code></td><td>排队中</td><td>继续轮询</td></tr>
+        <tr><td><code>in_progress</code></td><td>生成中</td><td>继续轮询</td></tr>
+        <tr><td><code>completed</code></td><td>已完成</td><td>读取 <code>video_url</code>、<code>url</code> 或 <code>metadata.result_urls</code></td></tr>
+        <tr><td><code>failed</code></td><td>失败</td><td>查看 <code>error.message</code></td></tr>
+      </tbody></table>
+    </article>
+  </main>
+
+
+</body><eusoft-chrome-extension-root-en id="eusoft-chrome-extension-id-en" _nghost-ng-c2546567076="" ng-version="18.2.13"><template _ngcontent-ng-c2546567076=""></template><!----><!----><!----><app-word-hint-render _ngcontent-ng-c2546567076="" _nghost-ng-c3319869249=""><template _ngcontent-ng-c3319869249=""></template><!----><!----></app-word-hint-render><app-translate-render _ngcontent-ng-c2546567076="" _nghost-ng-c2607817495=""><template _ngcontent-ng-c2607817495=""></template><!----><translate-analyzer _ngcontent-ng-c2607817495=""><template></template></translate-analyzer></app-translate-render><app-capture-word _ngcontent-ng-c2546567076="" class="eusoft-chrome-extension-capture-word-container ng-tns-c2615027859-0 ng-star-inserted"><template shadowrootmode="open"><style>.eudic-tippy-content-container[_ngcontent-ng-c2546567076]{max-width:250px!important}.eusoft-chrome-extension-popup-menu[_ngcontent-ng-c2546567076]{position:fixed;z-index:2147483647;top:50%}.eusoft-chrome-extension-popup-menu.eusoft-chrome-extension-popup-menu-left[_ngcontent-ng-c2546567076]{left:4px}.eusoft-chrome-extension-popup-menu.eusoft-chrome-extension-popup-menu-right[_ngcontent-ng-c2546567076]{right:4px}.eusoft-chrome-extension-mask-container[_ngcontent-ng-c2546567076]{background-color:transparent;position:fixed;top:0;right:0;bottom:0;left:0;z-index:2147483646}</style><style>.eusoft-eudic-chrome-extension-explain-icon-class{position:fixed!important;visibility:visible!important;z-index:2147483646!important}.eusoft-eudic-chrome-extension-explain-popover-container-class{position:relative!important}.eusoft-eudic-chrome-extension-explain-container-class{position:fixed!important;visibility:visible!important;min-width:100px;height:auto!important;z-index:2147483646!important}.eudic-explain-content-overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:2147483647}.eusoft-eudic-chrome-extension-explain-container-border-radius-class{box-shadow:0 2px 5px 1px #403c4329!important;border-radius:10px!important;overflow:hidden!important;background-color:#fff!important;box-sizing:border-box}.eudic-explain-resizer{z-index:2147483646!important;opacity:1;width:16px;height:16px;position:absolute}.eudic-explain-resizer-right{top:0;right:-8px;width:8px;height:100%;cursor:ew-resize}.eudic-explain-resizer-bottom{bottom:-8px;left:0;width:100%;cursor:ns-resize}.eudic-explain-resizer-top{top:-8px;left:0;width:100%;cursor:ns-resize}.eudic-explain-resizer-left{top:0;left:-8px;height:100%;cursor:ew-resize}.eudic-explain-resizer-bottom-right{right:-8px;bottom:-8px;cursor:nwse-resize}.eudic-explain-resizer-bottom-left{left:-8px;bottom:-8px;cursor:nesw-resize}.eudic-explain-content-inner{position:relative}.eudic-toolbar-container{cursor:move;display:flex;flex-direction:row;align-items:center;padding-left:12px;padding-right:12px;justify-content:space-between}.eudic-toolbar-left-actions,.eudic-toolbar-right-actions{display:flex;flex-direction:row;align-items:center}.eudic-toolbar-container-title{font-size:14px;font-family:Helvetica;-webkit-user-select:none;user-select:none;line-height:1;word-break:break-word}.eudic-toolbar-container-title-icon{width:16px;height:16px;margin-right:8px}.eudic-toolbar-right-expand-button,.eudic-toolbar-right-lock-button{margin-right:16px;cursor:pointer;width:16px;height:16px;display:flex;align-items:center}.eudic-toolbar-right-close-button{cursor:pointer;width:16px;height:16px;display:flex;align-items:center}.eudic-toolbar-inner-icon{width:16px;height:16px;display:flex}.eusoft-eudic-chrome-extension-explain-popover-container-class[data-content-script-theme=light] .eusoft-eudic-chrome-extension-explain-container-border-radius-class,.eusoft-eudic-chrome-extension-explain-popover-container-class[data-content-script-theme=light] .eudic-toolbar-container{background-color:#f7f9fc}.eusoft-eudic-chrome-extension-explain-popover-container-class[data-content-script-theme=light] .eudic-toolbar-container-title{color:#202124}.eusoft-eudic-chrome-extension-explain-popover-container-class[data-content-script-theme=dark] .eusoft-eudic-chrome-extension-explain-container-border-radius-class,.eusoft-eudic-chrome-extension-explain-popover-container-class[data-content-script-theme=dark] .eudic-toolbar-container{background-color:#141414}.eusoft-eudic-chrome-extension-explain-popover-container-class[data-content-script-theme=dark] .eudic-toolbar-container-title{color:#e6e6e6}
+</style><style>.eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{position:fixed!important;bottom:50px!important;right:50px!important;border-radius:5px!important;box-shadow:0 6px 24px #00000014!important;z-index:2147483647!important}.eusoft-eudic-translate-failed-content-script[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.light-en   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.light-fr   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.light-de   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.light-es   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.dark-en   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #595959!important;background-color:#212125!important}html.dark-fr   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #595959!important;background-color:#212125!important}html.dark-de   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #595959!important;background-color:#212125!important}html.dark-es   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #595959!important;background-color:#212125!important}html.sepia-en   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.sepia-fr   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.sepia-de   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.sepia-es   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.green-en   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.green-fr   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.green-de   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}html.green-es   [_nghost-ng-c3081775404]   .eusoft-eudic-translate-failed-container[_ngcontent-ng-c3081775404]{border:1px solid #E8E8E8!important;background-color:#f8fafe!important}</style><!----><!----><div class="eusoft-eudic-chrome-extension-explain-popover-container-class ng-tns-c2615027859-0" data-content-script-theme="light"><!----></div></template></app-capture-word><app-translate-failed-retry _ngcontent-ng-c2546567076="" _nghost-ng-c3081775404=""><!----></app-translate-failed-retry><!----><!----></eusoft-chrome-extension-root-en></html>

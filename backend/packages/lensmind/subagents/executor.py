@@ -1,7 +1,9 @@
-"""子 Agent 执行器——将 task_tool 的调度请求转为实际的 graph.invoke()。
+"""子 Agent 执行器——统一的 LLM Agent 入口。
 
-task_tool 是 dispatch 接口，executor 是执行引擎。
-两者分离：task_tool 负责查找 + 配置，executor 负责创建 + 调用。
+所有子 Agent 都走 LLM + tool 路径：
+  product_analyzer, script_writer, video_editor → LLM Agent
+  model_image_artist, scene_designer → LLM Agent + generate_image tool
+  storyboard_animator → LLM Agent + generate_video tool
 """
 
 from __future__ import annotations
@@ -18,6 +20,27 @@ __author__ = "万"
 
 logger = logging.getLogger(__name__)
 
+# 子 Agent → 额外 tool 的映射
+_MEDIA_TOOLS: dict[str, list] = {}
+
+
+def _get_media_tools(subagent_type: str) -> list:
+    """根据子 Agent 类型获取对应的 media tool。"""
+    if subagent_type in _MEDIA_TOOLS:
+        return _MEDIA_TOOLS[subagent_type]
+
+    tools = []
+    if subagent_type in ("model_image_artist", "scene_designer"):
+        from lensmind.tools.builtins.media_tools import generate_image
+        tools = [generate_image]
+
+    elif subagent_type == "storyboard_animator":
+        from lensmind.tools.builtins.media_tools import generate_image, generate_video
+        tools = [generate_image, generate_video]
+
+    _MEDIA_TOOLS[subagent_type] = tools
+    return tools
+
 
 def execute_subagent(
     subagent_type: str,
@@ -25,31 +48,25 @@ def execute_subagent(
     context: str,
     model: BaseChatModel,
 ) -> str:
-    """创建子 Agent 并同步执行。
+    """统一执行入口。
 
-    参数:
-        subagent_type: 子 Agent 类型名。
-        prompt: 给子 Agent 的任务描述。
-        context: 额外的上下文（JSON 字符串）。
-        model: 聊天模型实例。
-
-    返回:
-        子 Agent 的输出文本。
+    所有子 Agent 都通过 create_agent() + system_prompt + tools 运行。
+    media 类型的子 Agent 自动获得 generate_image/generate_video tool。
     """
     factory = get_subagent_factory(subagent_type)
     if factory is None:
-        available = ", ".join(_list_available())
-        raise ValueError(
-            f"未知的子 Agent 类型 '{subagent_type}'。可用: {available}"
-        )
+        raise ValueError(f"未知的子 Agent 类型 '{subagent_type}'。可用: {', '.join(_list_available())}")
 
-    agent = factory(model)
+    # 注入 media tools
+    extra_tools = _get_media_tools(subagent_type)
+
+    agent = factory(model, extra_tools)
     messages = [HumanMessage(content=prompt)]
-
     if context:
         messages.insert(0, HumanMessage(content=f"上下文数据: {context}"))
 
-    logger.info("执行子 Agent '%s': %s...", subagent_type, prompt[:80])
+    logger.info("执行子 Agent '%s' (tools=%d): %s...",
+                subagent_type, len(extra_tools), prompt[:80])
 
     try:
         result = agent.invoke({"messages": messages})
@@ -57,28 +74,22 @@ def execute_subagent(
         logger.exception("子 Agent '%s' 执行失败", subagent_type)
         raise
 
-    # 提取最后一条 AI 消息
     output = _extract_output(result, subagent_type)
-    logger.info("子 Agent '%s' 完成，输出长度 %d", subagent_type, len(output))
+    logger.info("子 Agent '%s' 完成，%d 字符", subagent_type, len(output))
     return output
 
 
 def _extract_output(result: dict[str, Any], agent_name: str) -> str:
-    """从 graph 执行结果中提取 AI 输出文本。"""
     messages = result.get("messages", [])
     for msg in reversed(messages):
         if hasattr(msg, "content") and getattr(msg, "type", None) == "ai":
             content = msg.content
-            if isinstance(content, str):
-                return content
-            # content 可能是 list (多模态)
-            return str(content)
-    logger.warning("子 Agent '%s' 未返回 AI 消息，返回原始结果", agent_name)
+            return content if isinstance(content, str) else str(content)
+    logger.warning("子 Agent '%s' 未返回 AI 消息", agent_name)
     return str(result)
 
 
 def _list_available() -> list[str]:
-    """列出可用的子 Agent 类型。"""
     from lensmind.subagents.registry import list_subagents
     return list_subagents() or [
         "product_analyzer", "script_writer", "model_image_artist",

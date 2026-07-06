@@ -32,10 +32,13 @@ logger = logging.getLogger(__name__)
 class WorkflowEngine:
     """DAG 工作流执行引擎。"""
 
-    def __init__(self, model: BaseChatModel, max_workers: int = 4, max_retries: int = 0):
+    def __init__(self, model: BaseChatModel, max_workers: int = 4, max_retries: int = 0,
+                 reviewer_model: BaseChatModel | None = None, max_review_rounds: int = 2):
         self._model = model
         self._max_workers = max(max_workers, 1)
         self._max_retries = max_retries
+        self._reviewer = reviewer_model       # None = 不审核
+        self._max_review_rounds = max_review_rounds
 
     def run(
         self,
@@ -149,6 +152,25 @@ class WorkflowEngine:
                     subagent_type=node.subagent_type,
                     prompt=prompt, context="", model=self._model,
                 )
+
+                # 导演审核循环
+                current_prompt = prompt
+                for review_round in range(self._max_review_rounds):
+                    if self._reviewer is None:
+                        break
+                    feedback = self._review_output(node.name, node.subagent_type, output)
+                    if feedback is None:
+                        break  # 通过
+                    logger.info("↺ [%s] 导演反馈(%d/%d): %s...",
+                                node.name, review_round + 1, self._max_review_rounds, feedback[:80])
+                    # 子 Agent 根据反馈重做
+                    revised_prompt = f"{current_prompt}\n\n---\n导演反馈: {feedback}\n请根据反馈修改后重新输出。"
+                    output = execute_subagent(
+                        subagent_type=node.subagent_type,
+                        prompt=revised_prompt, context="", model=self._model,
+                    )
+                    current_prompt = revised_prompt
+
                 nr.output = output
                 nr.status = "completed"
                 nr.finished_at = time.time()
@@ -202,6 +224,33 @@ class WorkflowEngine:
                     nr.finished_at = time.time()
                     outputs[node.name] = f"[错误] {e}"
                     logger.error("✗ [%s] 并行失败: %s", node.name, e)
+
+    def _review_output(self, node_name: str, subagent_type: str, output: str) -> str | None:
+        """导演审核子 Agent 产出。返回 None=通过，返回 str=修改意见。"""
+        from langchain_core.messages import HumanMessage
+
+        sys_prompt = (
+            "你是一个专业的电商视频导演(Director)。\n"
+            "审核团队成员的产出质量。\n"
+            "如果产出满足要求，回复一个词: APPROVED\n"
+            "如果需要修改，回复: FEEDBACK: <具体修改意见>\n\n"
+            "审核标准:\n"
+            "- 内容是否完整、专业\n"
+            "- 是否符合电商视频质量标准\n"
+            "- 是否存在明显错误或遗漏"
+        )
+        user_msg = f"审核 [{subagent_type}] 的产出:\n\n{output[:2000]}"
+        resp = self._reviewer.invoke([
+            HumanMessage(content=sys_prompt),
+            HumanMessage(content=user_msg),
+        ])
+        text = resp.content if hasattr(resp, 'content') else str(resp)
+
+        if text.strip().upper().startswith("APPROVED"):
+            return None  # 通过
+        # 提取反馈
+        feedback = text.replace("FEEDBACK:", "").replace("FEEDBACK：", "").strip()
+        return feedback if feedback and feedback != text.strip() else text.strip()
 
     def _build_prompt(self, node: WorkflowNode, outputs: dict[str, Any]) -> str:
         # 传所有 outputs（含初始 context + 上游节点输出），而不仅仅是 depends_on

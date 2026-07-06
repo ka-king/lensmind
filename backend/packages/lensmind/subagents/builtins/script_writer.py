@@ -20,8 +20,9 @@ __author__ = "万"
 SCRIPT_WRITER_PROMPT = _load_prompt("script_writer")
 
 
-def _create_script_writer(model: BaseChatModel) -> CompiledStateGraph:
+def _create_script_writer(model: BaseChatModel, extra_tools: list | None = None) -> CompiledStateGraph:
     return create_agent(
+        tools=extra_tools or None,
         model=model,
         system_prompt=SCRIPT_WRITER_PROMPT,
         name="script_writer",

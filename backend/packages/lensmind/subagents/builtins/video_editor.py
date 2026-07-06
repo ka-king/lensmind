@@ -17,8 +17,9 @@ __author__ = "万"
 VIDEO_EDITOR_PROMPT = _load_prompt("video_editor")
 
 
-def _create_video_editor(model: BaseChatModel) -> CompiledStateGraph:
+def _create_video_editor(model: BaseChatModel, extra_tools: list | None = None) -> CompiledStateGraph:
     return create_agent(
+        tools=extra_tools or None,
         model=model,
         system_prompt=VIDEO_EDITOR_PROMPT,
         name="video_editor",

@@ -17,9 +17,10 @@ __author__ = "万"
 MODEL_IMAGE_ARTIST_PROMPT = _load_prompt("model_image_artist")
 
 
-def _create_model_image_artist(model: BaseChatModel) -> CompiledStateGraph:
+def _create_model_image_artist(model: BaseChatModel, extra_tools: list | None = None) -> CompiledStateGraph:
     return create_agent(
         model=model,
+        tools=extra_tools or None,
         system_prompt=MODEL_IMAGE_ARTIST_PROMPT,
         name="model_image_artist",
     )
